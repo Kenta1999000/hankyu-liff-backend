@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>阪急乗換案内</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+  <h2>阪急 乗換案内（デモ）</h2>
+  <div>
+    出発駅:
+    <select id="from"></select>
+    到着駅:
+    <select id="to"></select>
+    <button id="search">検索</button>
+  </div>
+  <pre id="result"></pre>
+
+<script>
+const LIFF_ID = "2008501171-EPnG284V"; // LINE Developersで取得
+
+async function init() {
+  await liff.init({ liffId: LIFF_ID });
+  // 駅一覧を取得
+  const resp = await fetch("/stations");
+  const stations = await resp.json();
+  const from = document.getElementById("from");
+  const to = document.getElementById("to");
+  stations.forEach(s=>{
+    const opt1 = document.createElement("option");
+    opt1.value = s.code || s.name;
+    opt1.text = s.name;
+    from.appendChild(opt1);
+    const opt2 = opt1.cloneNode(true);
+    to.appendChild(opt2);
+  });
+  document.getElementById("search").onclick = doSearch;
+}
+
+async function doSearch(){
+  const from = document.getElementById("from").value;
+  const to = document.getElementById("to").value;
+  const res = await fetch("/route", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({from, to})
+  });
+  const data = await res.json();
+  document.getElementById("result").textContent = JSON.stringify(data, null, 2);
+
+  // LIFFでトークへ結果を送る例（任意）
+  if (liff.isLoggedIn()) {
+    await liff.shareTargetPicker([{
+      type: 'text',
+      text: `阪急 ${data.from} → ${data.to}\n料金: ${data.fare}円\n経路: ${data.path.join(' → ')}`
+    }]);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
